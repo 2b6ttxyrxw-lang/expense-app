@@ -65,16 +65,19 @@
 </footer>
 
 
-<script>
-// GAS Web App URL を貼る
-window.GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzcxmmAVJPIMWHIQlvzNh4JNtR5hOS8dDp3oJvf55sr2TtOiT-Twl20hAEQFDno6Dbi/exec"; // ←差し替え
-window.APP_META = {
-trainee: "田中太郎",
-userId: "user01",
-appUrl: location.href,
-specUrl: "https://github.com/your-github-username/expense-app/blob/main/spec.md"
-};
-</script>
-<script src="main.js"></script>
+  <!-- ここでGASの設定 -->
+  <script>
+    window.GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzcxmmAVJPIMWHIQlvzNh4JNtR5hOS8dDp3oJvf55sr2TtOiT-Twl20hAEQFDno6Dbi/exec";
+    window.APP_META = {
+      trainee: "田中太郎",
+      userId: "user01",
+      appUrl: location.href,
+      specUrl: "https://github.com/2b6ttxyrxw-lang/expense-app/blob/main/spec.md"
+    };
+  </script>
+
+  <!-- 🔽この行を一番最後に置く！ -->
+  <script src="main.js"></script>
 </body>
 </html>
+
