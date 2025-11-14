@@ -1,7 +1,7 @@
-// ===== DOM Helper =====
+// ===== DOM Helper / DOMヘルパ =====
 const $ = sel => document.querySelector(sel);
 
-// ===== Storage Layer =====
+// ===== Storage Layer / 永続化 =====
 const KEY = 'expenses';
 const yen = n => new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(n);
 
@@ -12,7 +12,7 @@ const Storage = {
   save(list) { localStorage.setItem(KEY, JSON.stringify(list)); }
 };
 
-// ===== State =====
+// ===== State / 状態 =====
 let expenses = Storage.load();
 
 // ===== DOM refs =====
@@ -20,7 +20,7 @@ const tbody = $('#expense-table tbody');
 const summary = $('#summary');
 const grandTotal = $('#grand-total');
 
-// ===== Render =====
+// ===== Render / 表示更新 =====
 function render() {
   // table
   if (tbody) {
@@ -37,7 +37,6 @@ function render() {
       tbody.appendChild(tr);
     }
   }
-
   // summary
   if (summary && grandTotal) {
     const byCat = expenses.reduce((acc, cur) => {
@@ -53,7 +52,7 @@ function render() {
 }
 render();
 
-// ===== Add (form) =====
+// ===== Add (form) / 追加 =====
 const form = $('#expense-form');
 if (form) {
   form.addEventListener('submit', e => {
@@ -76,7 +75,7 @@ if (form) {
   });
 }
 
-// ===== Delete (table) =====
+// ===== Delete (table) / 削除 =====
 if (tbody) {
   tbody.addEventListener('click', e => {
     const btn = e.target.closest('button.del');
@@ -88,35 +87,36 @@ if (tbody) {
   });
 }
 
-// ===== GAS fetch =====
+// ===== GAS fetch (no JSON header to avoid preflight) =====
+// プリフライト(OPTIONS)回避のため Content-Type ヘッダを付けない
 async function postToGAS(payload) {
   const url = window.GAS_ENDPOINT;
-  if (!url || url.includes('xxxxxxxx')) { alert('GASのURLを設定してください'); return { ok:false }; }
+  if (!url || url.includes('xxxxxxxx')) {
+    alert('GASのURLを設定してください'); 
+    return { ok:false };
+  }
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    // headers: { 'Content-Type': 'application/json' }, // ←付けない
+    body: JSON.stringify(payload) // text/plain 相当でも GAS 側で JSON.parse 可能
   });
   if (!res.ok) throw new Error('GAS Error: ' + res.status);
   return await res.json();
 }
 
-// ===== Sync to Cloud =====
-const syncBtn = $('#sync-cloud');
-if (syncBtn) {
-  syncBtn.addEventListener('click', async () => {
-    if (!expenses.length) return alert('同期するデータがありません');
-    try {
-      for (const item of expenses) {
-        await postToGAS({ action: 'create', item });
-      }
-      alert('クラウド同期が完了しました');
-    } catch (err) {
-      console.error(err);
-      alert('同期に失敗しました: ' + err.message);
+// ===== Sync to Cloud / クラウド同期 =====
+$('#sync-cloud')?.addEventListener('click', async () => {
+  if (!expenses.length) return alert('同期するデータがありません');
+  try {
+    for (const item of expenses) {
+      await postToGAS({ action: 'create', item });
     }
-  });
-}
+    alert('クラウド同期が完了しました');
+  } catch (err) {
+    console.error(err);
+    alert('同期に失敗しました: ' + err.message);
+  }
+});
 
 // ===== Export / Import =====
 $('#export-json')?.addEventListener('click', () => {
