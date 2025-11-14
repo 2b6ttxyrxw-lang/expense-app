@@ -90,33 +90,18 @@ if (tbody) {
 // ===== GAS fetch (no JSON header to avoid preflight) =====
 // プリフライト(OPTIONS)回避のため Content-Type ヘッダを付けない
 async function postToGAS(payload) {
-  const url = window.GAS_ENDPOINT;
-  if (!url || url.includes('xxxxxxxx')) {
-    alert('GASのURLを設定してください'); 
-    return { ok:false };
-  }
-  const res = await fetch(url, {
-    method: 'POST',
-    // headers: { 'Content-Type': 'application/json' }, // ←付けない
-    body: JSON.stringify(payload) // text/plain 相当でも GAS 側で JSON.parse 可能
-  });
+  const base = window.GAS_ENDPOINT; // .../exec
+  if (!base || base.includes('xxxxxxxx')) { alert('GASのURLを設定してください'); return { ok:false }; }
+
+  const { action, ...rest } = payload;
+  const qs = new URLSearchParams({ action, payload: JSON.stringify(rest) });
+  const url = `${base}?${qs.toString()}`;
+
+  const res = await fetch(url, { method: 'GET' }); // GET で送る（プリフライトなし）
   if (!res.ok) throw new Error('GAS Error: ' + res.status);
   return await res.json();
 }
 
-// ===== Sync to Cloud / クラウド同期 =====
-$('#sync-cloud')?.addEventListener('click', async () => {
-  if (!expenses.length) return alert('同期するデータがありません');
-  try {
-    for (const item of expenses) {
-      await postToGAS({ action: 'create', item });
-    }
-    alert('クラウド同期が完了しました');
-  } catch (err) {
-    console.error(err);
-    alert('同期に失敗しました: ' + err.message);
-  }
-});
 
 // ===== Export / Import =====
 $('#export-json')?.addEventListener('click', () => {
@@ -164,3 +149,4 @@ $('#complete-task')?.addEventListener('click', async () => {
     alert('完了通知に失敗: ' + e.message);
   }
 });
+
