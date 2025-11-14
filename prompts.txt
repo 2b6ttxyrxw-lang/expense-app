@@ -1,0 +1,18 @@
+# === 仕様作成 / Spec ===
+[Prompt] 支出管理アプリの仕様書を作成したい。必要な機能とデータ構造を整理してください。
+[AI Output] ...
+
+
+# === 実装 / Implementation ===
+[Prompt] localStorageに支出データを保存する関数を実装してください。構造は{id, date, category, amount, memo}。
+[AI Output] ...
+
+
+# === デバッグ / Debug ===
+[Prompt] このエラーを修正してください: Uncaught TypeError: Cannot read property 'push' of null
+[AI Output] ...
+
+
+# === テスト / Test Cases ===
+[Prompt] 追加/削除/集計のテスト観点を洗い出して。
+[AI Output] ...
