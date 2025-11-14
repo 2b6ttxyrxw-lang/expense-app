@@ -19,6 +19,7 @@ let expenses = Storage.load();
 const tbody = $('#expense-table tbody');
 const summary = $('#summary');
 const grandTotal = $('#grand-total');
+const form = $('#expense-form');
 
 // ===== Render / 表示更新 =====
 function render() {
@@ -53,7 +54,6 @@ function render() {
 render();
 
 // ===== Add (form) / 追加 =====
-const form = $('#expense-form');
 if (form) {
   form.addEventListener('submit', e => {
     e.preventDefault();
@@ -87,21 +87,54 @@ if (tbody) {
   });
 }
 
-// ===== GAS fetch (no JSON header to avoid preflight) =====
-// プリフライト(OPTIONS)回避のため Content-Type ヘッダを付けない
-async function postToGAS(payload) {
-  const base = window.GAS_ENDPOINT; // .../exec
-  if (!base || base.includes('xxxxxxxx')) { alert('GASのURLを設定してください'); return { ok:false }; }
+// ===== JSONP call (CORS-free) / JSONP 呼び出し =====
+function callGAS_JSONP(payload) {
+  const base = window.GAS_ENDPOINT; // 末尾 .../exec
+  if (!base || base.includes('xxxxxxxx')) return Promise.reject(new Error('GAS endpoint not set'));
 
   const { action, ...rest } = payload;
-  const qs = new URLSearchParams({ action, payload: JSON.stringify(rest) });
-  const url = `${base}?${qs.toString()}`;
+  const cb = `gas_cb_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-  const res = await fetch(url, { method: 'GET' }); // GET で送る（プリフライトなし）
-  if (!res.ok) throw new Error('GAS Error: ' + res.status);
-  return await res.json();
+  return new Promise((resolve, reject) => {
+    // 1) コールバックを window に生やす
+    window[cb] = (data) => {
+      try { resolve(data); } finally {
+        delete window[cb];
+        script.remove();
+      }
+    };
+    // 2) <script src="..."> を差し込む
+    const qs = new URLSearchParams({
+      action,
+      payload: JSON.stringify(rest),
+      cb
+    });
+    const script = document.createElement('script');
+    script.src = `${base}?${qs.toString()}`;
+    script.onerror = () => {
+      try { reject(new Error('JSONP load error')); } finally {
+        delete window[cb];
+        script.remove();
+      }
+    };
+    document.body.appendChild(script);
+  });
 }
 
+// ===== Sync to Cloud / クラウド同期 =====
+$('#sync-cloud')?.addEventListener('click', async () => {
+  if (!expenses.length) return alert('同期するデータがありません');
+  try {
+    for (const item of expenses) {
+      const r = await callGAS_JSONP({ action: 'create', item });
+      if (!r?.ok) throw new Error(r?.error || 'unknown error');
+    }
+    alert('クラウド同期が完了しました');
+  } catch (err) {
+    console.error(err);
+    alert('同期に失敗しました: ' + err.message);
+  }
+});
 
 // ===== Export / Import =====
 $('#export-json')?.addEventListener('click', () => {
@@ -131,22 +164,21 @@ $('#import-json')?.addEventListener('click', async () => {
   input.click();
 });
 
-// ===== Complete (LINE通知) =====
+// ===== Complete (LINE通知含むサブミット行追加想定) =====
 $('#complete-task')?.addEventListener('click', async () => {
   const now = new Date();
-  const payload = {
-    action: 'complete',
-    trainee: window.APP_META?.trainee,
-    userId: window.APP_META?.userId,
-    finishedAt: now.toISOString(),
-    appUrl: window.APP_META?.appUrl,
-    specUrl: window.APP_META?.specUrl
-  };
   try {
-    await postToGAS(payload);
+    const r = await callGAS_JSONP({
+      action: 'complete',
+      trainee: window.APP_META?.trainee,
+      userId: window.APP_META?.userId,
+      finishedAt: now.toISOString(),
+      appUrl: window.APP_META?.appUrl,
+      specUrl: window.APP_META?.specUrl
+    });
+    if (!r?.ok) throw new Error(r?.error || 'unknown error');
     alert('完了通知を送信しました');
   } catch (e) {
     alert('完了通知に失敗: ' + e.message);
   }
 });
-
