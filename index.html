@@ -1,0 +1,80 @@
+<!doctype html>
+<title>支出管理アプリ（課題4）</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+<h1>支出管理アプリ（課題4） / Expense Tracker</h1>
+</header>
+
+
+<section class="card">
+<h2>入力 / Add Expense</h2>
+<form id="expense-form">
+<label>日付 <input type="date" id="date" required></label>
+<label>カテゴリ
+<select id="category" required>
+<option value="食費">食費</option>
+<option value="交通費">交通費</option>
+<option value="娯楽費">娯楽費</option>
+<option value="日用品">日用品</option>
+<option value="その他">その他</option>
+</select>
+</label>
+<label>金額（¥）<input type="number" id="amount" min="0" step="1" required></label>
+<label>メモ <input type="text" id="memo" placeholder="例: ランチ"></label>
+<button type="submit">追加 / Add</button>
+</form>
+<div class="actions">
+<button id="sync-cloud">クラウド同期 / Sync to Cloud</button>
+<button id="export-json">JSONエクスポート</button>
+<button id="import-json">JSONインポート</button>
+</div>
+</section>
+
+
+<section class="card">
+<h2>一覧 / List</h2>
+<table id="expense-table">
+<thead>
+<tr>
+<th>日付</th><th>カテゴリ</th><th>金額</th><th>メモ</th><th>操作</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</section>
+
+
+<section class="card">
+<h2>集計 / Summary</h2>
+<ul id="summary"></ul>
+<p id="grand-total"><strong>合計: ¥0</strong></p>
+</section>
+
+
+<section class="card">
+<h2>提出 / Submit</h2>
+<button id="complete-task">課題完了ボタン</button>
+<p class="hint">押下するとGASに完了ログを送信し、LINEに通知されます。</p>
+</section>
+
+
+<footer>
+<small>© 2025 Expense App (Training)</small>
+</footer>
+
+
+<script>
+// GAS Web App URL を貼る
+window.GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzcxmmAVJPIMWHIQlvzNh4JNtR5hOS8dDp3oJvf55sr2TtOiT-Twl20hAEQFDno6Dbi/exec"; // ←差し替え
+window.APP_META = {
+trainee: "田中太郎",
+userId: "user01",
+appUrl: location.href,
+specUrl: "https://github.com/your-github-username/expense-app/blob/main/spec.md"
+};
+</script>
+<script src="main.js"></script>
+</body>
+</html>
