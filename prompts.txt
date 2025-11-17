@@ -16,3 +16,9 @@
 # === テスト / Test Cases ===
 [Prompt] 追加/削除/集計のテスト観点を洗い出して。
 [AI Output] ...
+
+[Prompt] Fix CORS issue for GAS from GitHub Pages.
+[AI Output] Switched to JSONP: added doGet with cb param (MimeType.JAVASCRIPT), front-end loads <script>?action=...&payload=...&cb=...; confirmed rows append to Sheet.
+
+[Prompt] Implement main.js full logic (add/delete/render/sync).
+[AI Output] Provided full file with Storage layer, renderer, JSONP caller, and handlers.
