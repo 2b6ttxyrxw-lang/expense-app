@@ -1,166 +1,197 @@
-　// ===== DOM Helper / DOMヘルパ =====
-const $ = sel => document.querySelector(sel);
+// main.js ($ を使わないシンプル版)
 
-// ===== Storage Layer / 永続化 =====
-const KEY = 'expenses';
-const yen = n => new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(n);
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== Storage / 永続化 =====
+  const KEY = 'expenses';
 
-const Storage = {
-  load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
-  },
-  save(list) { localStorage.setItem(KEY, JSON.stringify(list)); }
-};
-
-// ===== State / 状態 =====
-let expenses = Storage.load();
-
-// ===== DOM refs =====
-const tbody = $('#expense-table tbody');
-const summary = $('#summary');
-const grandTotal = $('#grand-total');
-const form = $('#expense-form');
-
-// ===== Render / 表示更新 =====
-function render() {
-  // table
-  if (tbody) {
-    tbody.innerHTML = '';
-    for (const item of expenses) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.date}</td>
-        <td>${item.category}</td>
-        <td>${yen(item.amount)}</td>
-        <td>${item.memo ?? ''}</td>
-        <td><button data-id="${item.id}" class="del">削除</button></td>
-      `;
-      tbody.appendChild(tr);
-    }
-  }
-  // summary
-  if (summary && grandTotal) {
-    const byCat = expenses.reduce((acc, cur) => {
-      acc[cur.category] = (acc[cur.category] || 0) + Number(cur.amount || 0);
-      return acc;
-    }, {});
-    summary.innerHTML = Object.entries(byCat)
-      .map(([cat, amt]) => `<li><strong>${cat}</strong>: ${yen(amt)}</li>`)
-      .join('');
-    const total = expenses.reduce((s, x) => s + Number(x.amount || 0), 0);
-    grandTotal.innerHTML = `<strong>合計: ${yen(total)}</strong>`;
-  }
-}
-render();
-
-// ===== Add (form) / 追加 =====
-if (form) {
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const item = {
-      id: Date.now(),
-      date: $('#date')?.value,
-      category: $('#category')?.value,
-      amount: Number($('#amount')?.value),
-      memo: ($('#memo')?.value || '').trim()
-    };
-    if (!item.date || !item.category || isNaN(item.amount)) {
-      alert('入力を確認してください');
-      return;
-    }
-    expenses.push(item);
-    Storage.save(expenses);
-    form.reset();
-    render();
-  });
-}
-
-// ===== Delete (table) / 削除 =====
-if (tbody) {
-  tbody.addEventListener('click', e => {
-    const btn = e.target.closest('button.del');
-    if (!btn) return;
-    const id = Number(btn.dataset.id);
-    expenses = expenses.filter(x => x.id !== id);
-    Storage.save(expenses);
-    render();
-  });
-}
-
-// ===== Sync to Cloud / クラウド同期 =====
-async function syncItemToGAS(item) {
-  const base = window.GAS_ENDPOINT;
-  if (!base) throw new Error('GAS endpoint not set');
-
-  const qs = new URLSearchParams({
-    action: 'create',
-    payload: JSON.stringify({ item })
-  });
-
-  const url = `${base}?${qs.toString()}`;
-  window.open(url, '_blank'); // ← JSONPもfetchも使わず「確実に動く方式」
-}
-
-$('#sync-cloud')?.addEventListener('click', async () => {
-  if (!expenses.length) return alert('同期するデータがありません');
-  try {
-    for (const item of expenses) {
-      await syncItemToGAS(item);
-    }
-    alert('クラウド同期を開始しました（GASのタブが開きます）');
-  } catch (err) {
-    console.error(err);
-    alert('同期に失敗しました: ' + err.message);
-  }
-});
-
-// ===== Export / Import =====
-$('#export-json')?.addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(expenses, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'expenses.json';
-  a.click();
-});
-
-$('#import-json')?.addEventListener('click', async () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'application/json';
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (!file) return;
-    const text = await file.text();
+  function loadExpenses() {
     try {
-      const data = JSON.parse(text);
-      if (!Array.isArray(data)) throw new Error('Invalid JSON');
-      expenses = data;
-      Storage.save(expenses);
-      render();
-    } catch (e) { alert('読み込み失敗: ' + e.message); }
-  };
-  input.click();
-});
-
-// ===== Complete / 課題完了通知（GASを新しいタブで叩く） =====
-$('#complete-task-new')?.addEventListener('click', () => {
-  const base = window.GAS_ENDPOINT;
-  if (!base || base.includes('xxxxxxxx')) {
-    alert('GASのURLが設定されていません');
-    return;
+      return JSON.parse(localStorage.getItem(KEY)) || [];
+    } catch (e) {
+      return [];
+    }
   }
 
-  const payload = {
-    trainee: window.APP_META?.trainee || '',
-    userId: window.APP_META?.userId || ''
-  };
+  function saveExpenses(list) {
+    localStorage.setItem(KEY, JSON.stringify(list));
+  }
 
-  const qs = new URLSearchParams({
-    action: 'complete',
-    payload: JSON.stringify(payload)
-  });
+  function yen(n) {
+    return new Intl.NumberFormat('ja-JP', {
+      style: 'currency',
+      currency: 'JPY'
+    }).format(n);
+  }
 
-  const url = `${base}?${qs.toString()}`;
-  window.open(url, '_blank');
+  // ===== State =====
+  let expenses = loadExpenses();
 
-  ale
+  // ===== DOM参照 =====
+  const tbody = document.querySelector('#expense-table tbody');
+  const summary = document.querySelector('#summary');
+  const grandTotal = document.querySelector('#grand-total');
+  const form = document.querySelector('#expense-form');
+  const btnSync = document.querySelector('#sync-cloud');
+  const btnExport = document.querySelector('#export-json');
+  const btnImport = document.querySelector('#import-json');
+  const btnComplete = document.querySelector('#complete-task-new'); // ← ボタンのidに合わせる
+
+  // ===== Render =====
+  function render() {
+    // テーブル
+    if (tbody) {
+      tbody.innerHTML = '';
+      expenses.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.date}</td>
+          <td>${item.category}</td>
+          <td>${yen(item.amount)}</td>
+          <td>${item.memo || ''}</td>
+          <td><button type="button" data-id="${item.id}" class="del">削除</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // サマリ
+    if (summary && grandTotal) {
+      const byCat = expenses.reduce((acc, cur) => {
+        const cat = cur.category || '';
+        acc[cat] = (acc[cat] || 0) + Number(cur.amount || 0);
+        return acc;
+      }, {});
+      summary.innerHTML = Object.entries(byCat)
+        .map(([cat, amt]) => `<li><strong>${cat}</strong>: ${yen(amt)}</li>`)
+        .join('');
+      const total = expenses.reduce((s, x) => s + Number(x.amount || 0), 0);
+      grandTotal.innerHTML = `<strong>合計: ${yen(total)}</strong>`;
+    }
+  }
+
+  render();
+
+  // ===== 追加 =====
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dateEl = document.querySelector('#date');
+      const catEl = document.querySelector('#category');
+      const amtEl = document.querySelector('#amount');
+      const memoEl = document.querySelector('#memo');
+
+      const item = {
+        id: Date.now(),
+        date: dateEl ? dateEl.value : '',
+        category: catEl ? catEl.value : '',
+        amount: amtEl ? Number(amtEl.value) : NaN,
+        memo: memoEl ? memoEl.value.trim() : ''
+      };
+
+      if (!item.date || !item.category || isNaN(item.amount)) {
+        alert('日付・カテゴリ・金額を確認してください');
+        return;
+      }
+
+      expenses.push(item);
+      saveExpenses(expenses);
+      if (form) form.reset();
+      render();
+    });
+  }
+
+  // ===== 削除 =====
+  if (tbody) {
+    tbody.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.classList.contains('del')) return;
+
+      const id = Number(target.dataset.id);
+      expenses = expenses.filter(x => x.id !== id);
+      saveExpenses(expenses);
+      render();
+    });
+  }
+
+  // ===== Sync to Cloud（GASを新しいタブで叩く） =====
+  if (btnSync) {
+    btnSync.addEventListener('click', () => {
+      const base = window.GAS_ENDPOINT;
+      if (!base) {
+        alert('GASのURLが設定されていません');
+        return;
+      }
+      if (!expenses.length) {
+        alert('同期するデータがありません');
+        return;
+      }
+
+      // ここではシンプルに「まとめて1回送る」ようにする
+      const payload = { items: expenses };
+      const qs = new URLSearchParams({
+        action: 'create',
+        payload: JSON.stringify(payload)
+      });
+      const url = `${base}?${qs.toString()}`;
+      window.open(url, '_blank');
+      alert('クラウド同期リクエストを送信しました（GASのタブが開きます）');
+    });
+  }
+
+  // ===== Export / Import =====
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(expenses, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'expenses.json';
+      a.click();
+    });
+  }
+
+  if (btnImport) {
+    btnImport.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const data = JSON.parse(text);
+          if (!Array.isArray(data)) throw new Error('配列ではありません');
+          expenses = data;
+          saveExpenses(expenses);
+          render();
+        } catch (err) {
+          alert('読み込みに失敗しました: ' + err.message);
+        }
+      };
+      input.click();
+    });
+  }
+
+  // ===== Complete（課題完了：GASを新しいタブで叩く） =====
+  if (btnComplete) {
+    btnComplete.addEventListener('click', () => {
+      const base = window.GAS_ENDPOINT;
+      if (!base) {
+        alert('GASのURLが設定されていません');
+        return;
+      }
+      const payload = {
+        trainee: window.APP_META?.trainee || '',
+        userId: window.APP_META?.userId || ''
+      };
+      const qs = new URLSearchParams({
+        action: 'complete',
+        payload: JSON.stringify(payload)
+      });
+      const url = `${base}?${qs.toString()}`;
+      window.open(url, '_blank');
+      alert('完了通知リクエストを送信しました（GASのタブが開きます）');
+    });
+  }
+});
