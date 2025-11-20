@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSync = document.querySelector('#sync-cloud');
   const btnExport = document.querySelector('#export-json');
   const btnImport = document.querySelector('#import-json');
-  const btnComplete = document.querySelector('#complete-task-new'); // ← ボタンのidに合わせる
+  const btnComplete = document.querySelector('#complete-task-new'); // 課題完了ボタン
 
   // ===== Render =====
   function render() {
@@ -127,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // ここではシンプルに「まとめて1回送る」ようにする
       const payload = { items: expenses };
       const qs = new URLSearchParams({
         action: 'create',
