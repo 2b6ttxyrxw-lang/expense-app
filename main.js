@@ -1,5 +1,5 @@
 // ===== Complete / 課題完了通知（GASを新しいタブで叩く） =====
-$('#complete-task')?.addEventListener('click', () => {
+$('#complete-task-new')?.addEventListener('click', () => {
   const base = window.GAS_ENDPOINT;
   if (!base || base.includes('xxxxxxxx')) {
     alert('GASのURLが設定されていません');
